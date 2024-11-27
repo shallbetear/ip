@@ -1,0 +1,78 @@
+<?php
+$conn = new mysqli("localhost", "root", "", "student_system");
+if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $id = $_POST['id'] ?? null;
+    $name = $conn->real_escape_string($_POST['name']);
+    $email = $conn->real_escape_string($_POST['email']);
+    $phone = $conn->real_escape_string($_POST['phone']);
+    $address = $conn->real_escape_string($_POST['address']);
+    $sql = $id ? "UPDATE students SET name='$name', email='$email', phone='$phone', address='$address' WHERE id=$id" : 
+                "INSERT INTO students (name, email, phone, address) VALUES ('$name', '$email', '$phone', '$address')";
+    if ($conn->query($sql)) header("Location: student_system.php");
+    else echo "Error: " . $conn->error;
+}
+
+if (isset($_GET['delete'])) {
+    $conn->query("DELETE FROM students WHERE id=" . (int)$_GET['delete']);
+    header("Location: student_system.php");
+}
+
+$students = $conn->query("SELECT * FROM students");
+$edit = isset($_GET['edit']) ? $conn->query("SELECT * FROM students WHERE id=" . (int)$_GET['edit'])->fetch_assoc() : null;
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Information System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f4f4f4; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
+        button { padding: 10px 15px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+        button.delete { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+
+<h1>Student Information System</h1>
+
+<form method="post">
+    <input type="hidden" name="id" value="<?= $edit['id'] ?? ''; ?>">
+    <label>Name:</label><input type="text" name="name" value="<?= $edit['name'] ?? ''; ?>" required>
+    <label>Email:</label><input type="email" name="email" value="<?= $edit['email'] ?? ''; ?>" required>
+    <label>Phone:</label><input type="text" name="phone" value="<?= $edit['phone'] ?? ''; ?>">
+    <label>Address:</label><textarea name="address"><?= $edit['address'] ?? ''; ?></textarea>
+    <button type="submit"><?= $edit ? "Update" : "Add"; ?> Student</button>
+</form>
+
+<table>
+    <thead>
+        <tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Address</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+        <?php while ($row = $students->fetch_assoc()): ?>
+            <tr>
+                <td><?= $row['id']; ?></td><td><?= $row['name']; ?></td><td><?= $row['email']; ?></td>
+                <td><?= $row['phone']; ?></td><td><?= $row['address']; ?></td>
+                <td><a href="?edit=<?= $row['id']; ?>">Edit</a> | <a href="?delete=<?= $row['id']; ?>" class="delete" onclick="return confirm('Are you sure?')">Delete</a></td>
+            </tr>
+        <?php endwhile; ?>
+    </tbody>
+</table>
+
+</body>
+</html>
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(15),
+    address TEXT
+);
